@@ -23,6 +23,15 @@ app.use(
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
+app.get('/', (req, res) => {
+  res.status(200).json({
+    name: 'TicketEase API',
+    status: 'Running',
+    health: '/api/health',
+    events: '/api/events'
+  });
+});
+
 app.get('/api/health', (req, res) => {
   res.status(200).json({
     status: 'OK',
