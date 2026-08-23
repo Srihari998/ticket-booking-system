@@ -15,7 +15,7 @@ import { MyBookingsPage } from './pages/MyBookingsPage';
 import { WaitlistPage } from './pages/WaitlistPage';
 import { WaitlistOfferPage } from './pages/WaitlistOfferPage';
 import { OrganiserDashboardPage } from './pages/OrganiserDashboardPage';
-import { AdminVenuesPage } from './pages/AdminVenuesPage';
+import { AdminPortalPage } from './pages/AdminPortalPage';
 
 export function App() {
   return (
@@ -75,12 +75,16 @@ export function App() {
                   }
                 />
                 <Route
-                  path="/admin/venues"
+                  path="/admin"
                   element={
                     <ProtectedRoute allowedRoles={['ADMIN']}>
-                      <AdminVenuesPage />
+                      <AdminPortalPage />
                     </ProtectedRoute>
                   }
+                />
+                <Route
+                  path="/admin/venues"
+                  element={<Navigate to="/admin" replace />}
                 />
 
                 <Route path="*" element={<Navigate to="/events" replace />} />

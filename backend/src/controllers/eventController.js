@@ -255,11 +255,11 @@ const updateEvent = async (req, res, next) => {
   const client = await getClient();
   try {
     const { id } = req.params;
-    const { title, description, eventType, eventDate, startTime, status, categoryPrices } = req.body;
+    const { title, description, eventType, eventDate, startTime, venueId, status, categoryPrices } = req.body;
 
     await client.query('BEGIN');
 
-    const eventRes = await client.query('SELECT organiser_id FROM events WHERE id = $1', [id]);
+    const eventRes = await client.query('SELECT organiser_id, venue_id FROM events WHERE id = $1', [id]);
     if (eventRes.rows.length === 0) {
       throw new NotFoundError('Event not found');
     }
@@ -292,6 +292,10 @@ const updateEvent = async (req, res, next) => {
       updates.push(`start_time = $${paramIdx++}`);
       params.push(startTime);
     }
+    if (venueId !== undefined) {
+      updates.push(`venue_id = $${paramIdx++}`);
+      params.push(venueId);
+    }
     if (status !== undefined) {
       updates.push(`status = $${paramIdx++}`);
       params.push(status);
@@ -299,6 +303,17 @@ const updateEvent = async (req, res, next) => {
 
     if (updates.length > 0) {
       await client.query(`UPDATE events SET ${updates.join(', ')} WHERE id = $1`, params);
+    }
+
+    if (venueId !== undefined) {
+      await client.query(
+        `INSERT INTO event_seats (event_id, venue_seat_id, status)
+         SELECT $1, vs.id, 'AVAILABLE'
+         FROM venue_seats vs
+         WHERE vs.venue_id = $2
+         ON CONFLICT (event_id, venue_seat_id) DO NOTHING`,
+        [id, venueId]
+      );
     }
 
     if (Array.isArray(categoryPrices)) {

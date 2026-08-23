@@ -20,10 +20,10 @@ export const LoginPage = () => {
     setSubmitting(true);
     try {
       const user = await login(email, password);
-      if (user.role === 'ORGANISER') {
+      if (user.role === 'ADMIN') {
+        navigate('/admin');
+      } else if (user.role === 'ORGANISER') {
         navigate('/organiser');
-      } else if (user.role === 'ADMIN') {
-        navigate('/admin/venues');
       } else {
         navigate(from, { replace: true });
       }
@@ -101,6 +101,14 @@ export const LoginPage = () => {
               type="button"
               className="btn btn-outline btn-sm"
               style={{ justifyContent: 'flex-start', fontSize: '11px' }}
+              onClick={() => fillQuickCredentials('admin@example.com', 'Admin@123')}
+            >
+              Admin: admin@example.com / Admin@123 (Manage Theaters & Movies)
+            </button>
+            <button
+              type="button"
+              className="btn btn-outline btn-sm"
+              style={{ justifyContent: 'flex-start', fontSize: '11px' }}
               onClick={() => fillQuickCredentials('customer@example.com', 'Customer@123')}
             >
               Customer: customer@example.com / Customer@123
@@ -112,14 +120,6 @@ export const LoginPage = () => {
               onClick={() => fillQuickCredentials('organiser@example.com', 'Organiser@123')}
             >
               Organiser: organiser@example.com / Organiser@123
-            </button>
-            <button
-              type="button"
-              className="btn btn-outline btn-sm"
-              style={{ justifyContent: 'flex-start', fontSize: '11px' }}
-              onClick={() => fillQuickCredentials('admin@example.com', 'Admin@123')}
-            >
-              Admin: admin@example.com / Admin@123
             </button>
           </div>
         </div>

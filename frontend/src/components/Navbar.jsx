@@ -1,7 +1,7 @@
 import React from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
-import { Ticket, Calendar, Clock, BookmarkCheck, LogOut, User, LayoutDashboard, Building2, LogIn } from 'lucide-react';
+import { Ticket, Calendar, Clock, BookmarkCheck, LogOut, LayoutDashboard, ShieldCheck, LogIn } from 'lucide-react';
 
 export const Navbar = () => {
   const { user, logout } = useAuth();
@@ -39,15 +39,15 @@ export const Navbar = () => {
             </>
           )}
 
-          {user && (user.role === 'ORGANISER' || user.role === 'ADMIN') && (
+          {user && user.role === 'ORGANISER' && (
             <Link to="/organiser" className={`nav-link ${isActive('/organiser') ? 'active' : ''}`}>
               <span className="flex items-center gap-1.5"><LayoutDashboard size={16} /> Organiser Portal</span>
             </Link>
           )}
 
           {user && user.role === 'ADMIN' && (
-            <Link to="/admin/venues" className={`nav-link ${isActive('/admin/venues') ? 'active' : ''}`}>
-              <span className="flex items-center gap-1.5"><Building2 size={16} /> Venues & Seats</span>
+            <Link to="/admin" className={`nav-link ${isActive('/admin') ? 'active' : ''}`}>
+              <span className="flex items-center gap-1.5"><ShieldCheck size={16} /> Admin Portal</span>
             </Link>
           )}
         </nav>

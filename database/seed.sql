@@ -19,6 +19,43 @@ INSERT INTO venues (id, name, location, created_by) VALUES
 (7, 'Brahmananda Reddy Stadium Arena', 'Kanna Vari Thota, Guntur', 1)
 ON CONFLICT (id) DO NOTHING;
 
+DO $$
+DECLARE
+    v_id INT;
+    r_label TEXT;
+    s_num INT;
+    c_id INT;
+BEGIN
+    FOR v_id IN 1..6 LOOP
+        FOREACH r_label IN ARRAY ARRAY['A', 'B', 'C', 'D', 'E'] LOOP
+            IF r_label IN ('A', 'B') THEN
+                c_id := 1;
+            ELSE
+                c_id := 2;
+            END IF;
+            FOR s_num IN 1..6 LOOP
+                INSERT INTO venue_seats (venue_id, row_label, seat_number, category_id)
+                VALUES (v_id, r_label, s_num, c_id)
+                ON CONFLICT (venue_id, row_label, seat_number) DO NOTHING;
+            END LOOP;
+        END LOOP;
+    END LOOP;
+
+    v_id := 7;
+    FOREACH r_label IN ARRAY ARRAY['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H'] LOOP
+        IF r_label IN ('A', 'B', 'C') THEN
+            c_id := 1;
+        ELSE
+            c_id := 2;
+        END IF;
+        FOR s_num IN 1..6 LOOP
+            INSERT INTO venue_seats (venue_id, row_label, seat_number, category_id)
+            VALUES (v_id, r_label, s_num, c_id)
+            ON CONFLICT (venue_id, row_label, seat_number) DO NOTHING;
+        END LOOP;
+    END LOOP;
+END $$;
+
 INSERT INTO events (id, organiser_id, venue_id, title, description, event_type, event_date, start_time, status) VALUES
 (1, 2, 2, 'Devara: Part 1 (Telugu)', 'High-octane coastal action drama starring Jr NTR, Janhvi Kapoor, and Saif Ali Khan. Directed by Koratala Siva with electrifying music by Anirudh.', 'MOVIE', CURRENT_DATE + INTERVAL '1 day', '18:30:00', 'PUBLISHED'),
 (2, 2, 1, 'Pushpa 2: The Rule (Telugu)', 'Allu Arjun returns as Pushpa Raj in the grandest mass action sequel directed by Sukumar. Featuring Rashmika Mandanna and Fahadh Faasil.', 'MOVIE', CURRENT_DATE + INTERVAL '2 days', '19:00:00', 'PUBLISHED'),
@@ -48,3 +85,9 @@ INSERT INTO event_category_prices (event_id, category_id, price) VALUES
 (11, 1, 2500.00), (11, 2, 999.00),
 (12, 1, 2500.00), (12, 2, 999.00)
 ON CONFLICT (event_id, category_id) DO NOTHING;
+
+INSERT INTO event_seats (event_id, venue_seat_id, status)
+SELECT e.id, vs.id, 'AVAILABLE'
+FROM events e
+JOIN venue_seats vs ON vs.venue_id = e.venue_id
+ON CONFLICT (event_id, venue_seat_id) DO NOTHING;
