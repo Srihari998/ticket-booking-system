@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
-import { getCurrentUser, loginUser, registerUser } from '../services/authService';
+import { loginUser, registerUser } from '../services/authService';
 
 const AuthContext = createContext(null);
 
@@ -16,20 +16,16 @@ export const AuthProvider = ({ children }) => {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const initAuth = async () => {
-      if (token) {
-        try {
-          const freshUser = await getCurrentUser();
-          setUser(freshUser);
-          localStorage.setItem('ticket_app_user', JSON.stringify(freshUser));
-        } catch {
-          logout();
-        }
-      }
-      setLoading(false);
-    };
-    initAuth();
-  }, [token]);
+    const savedToken = localStorage.getItem('ticket_app_token');
+    const savedUser = localStorage.getItem('ticket_app_user');
+    if (savedToken && savedUser) {
+      try {
+        setUser(JSON.parse(savedUser));
+        setToken(savedToken);
+      } catch {}
+    }
+    setLoading(false);
+  }, []);
 
   const login = async (email, password) => {
     const data = await loginUser(email, password);
