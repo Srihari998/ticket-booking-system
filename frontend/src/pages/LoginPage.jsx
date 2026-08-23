@@ -34,11 +34,6 @@ export const LoginPage = () => {
     }
   };
 
-  const fillQuickCredentials = (userEmail, userPass) => {
-    setEmail(userEmail);
-    setPassword(userPass);
-  };
-
   return (
     <div style={{ maxWidth: '440px', margin: '40px auto 0', width: '100%' }}>
       <div className="card">
@@ -92,36 +87,6 @@ export const LoginPage = () => {
           <Link to="/register" style={{ color: 'var(--primary)', fontWeight: '700' }}>
             Create one
           </Link>
-        </div>
-
-        <div style={{ marginTop: '20px', background: '#f8fafc', padding: '14px', borderRadius: 'var(--radius-sm)', fontSize: '12px' }}>
-          <div style={{ fontWeight: '700', marginBottom: '8px', color: 'var(--text-muted)' }}>Quick Demo Logins:</div>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-            <button
-              type="button"
-              className="btn btn-outline btn-sm"
-              style={{ justifyContent: 'flex-start', fontSize: '11px' }}
-              onClick={() => fillQuickCredentials('admin@example.com', 'Admin@123')}
-            >
-              Admin: admin@example.com / Admin@123 (Manage Theaters & Movies)
-            </button>
-            <button
-              type="button"
-              className="btn btn-outline btn-sm"
-              style={{ justifyContent: 'flex-start', fontSize: '11px' }}
-              onClick={() => fillQuickCredentials('customer@example.com', 'Customer@123')}
-            >
-              Customer: customer@example.com / Customer@123
-            </button>
-            <button
-              type="button"
-              className="btn btn-outline btn-sm"
-              style={{ justifyContent: 'flex-start', fontSize: '11px' }}
-              onClick={() => fillQuickCredentials('organiser@example.com', 'Organiser@123')}
-            >
-              Organiser: organiser@example.com / Organiser@123
-            </button>
-          </div>
         </div>
       </div>
     </div>
