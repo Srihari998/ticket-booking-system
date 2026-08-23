@@ -38,7 +38,7 @@ const SEED_EVENTS = [
     venue_name: 'Cine Square 4K Dolby Atmos',
     venue_location: 'Lakshmipuram 4th Line, Guntur',
     total_seats: 30,
-    available_seats: 26,
+    available_seats: 30,
     prices: [
       { categoryId: 1, category_id: 1, categoryName: 'Premium (Balcony/VIP)', category_name: 'Premium (Balcony/VIP)', price: 295 },
       { categoryId: 2, category_id: 2, categoryName: 'Standard (First Class)', category_name: 'Standard (First Class)', price: 175 }
@@ -54,7 +54,7 @@ const SEED_EVENTS = [
     venue_name: 'Hollywood Bollywood Multiplex',
     venue_location: 'Arundelpet Main Road, Guntur',
     total_seats: 30,
-    available_seats: 28,
+    available_seats: 30,
     prices: [
       { categoryId: 1, category_id: 1, categoryName: 'Premium (Balcony/VIP)', category_name: 'Premium (Balcony/VIP)', price: 295 },
       { categoryId: 2, category_id: 2, categoryName: 'Standard (First Class)', category_name: 'Standard (First Class)', price: 175 }
@@ -70,7 +70,7 @@ const SEED_EVENTS = [
     venue_name: 'Naz Deluxe Theatre 4K',
     venue_location: 'Station Road, Guntur',
     total_seats: 30,
-    available_seats: 25,
+    available_seats: 30,
     prices: [
       { categoryId: 1, category_id: 1, categoryName: 'Premium (Balcony/VIP)', category_name: 'Premium (Balcony/VIP)', price: 295 },
       { categoryId: 2, category_id: 2, categoryName: 'Standard (First Class)', category_name: 'Standard (First Class)', price: 175 }
@@ -86,7 +86,7 @@ const SEED_EVENTS = [
     venue_name: 'Saraswathi Picture Palace',
     venue_location: 'Brodipet 6th Lane, Guntur',
     total_seats: 30,
-    available_seats: 29,
+    available_seats: 30,
     prices: [
       { categoryId: 1, category_id: 1, categoryName: 'Premium (Balcony/VIP)', category_name: 'Premium (Balcony/VIP)', price: 295 },
       { categoryId: 2, category_id: 2, categoryName: 'Standard (First Class)', category_name: 'Standard (First Class)', price: 175 }
@@ -102,7 +102,7 @@ const SEED_EVENTS = [
     venue_name: 'Cine Square 4K Dolby Atmos',
     venue_location: 'Lakshmipuram 4th Line, Guntur',
     total_seats: 30,
-    available_seats: 27,
+    available_seats: 30,
     prices: [
       { categoryId: 1, category_id: 1, categoryName: 'Premium (Balcony/VIP)', category_name: 'Premium (Balcony/VIP)', price: 295 },
       { categoryId: 2, category_id: 2, categoryName: 'Standard (First Class)', category_name: 'Standard (First Class)', price: 175 }
@@ -150,7 +150,7 @@ const SEED_EVENTS = [
     venue_name: 'Hollywood Bollywood Multiplex',
     venue_location: 'Arundelpet Main Road, Guntur',
     total_seats: 30,
-    available_seats: 28,
+    available_seats: 30,
     prices: [
       { categoryId: 1, category_id: 1, categoryName: 'Premium (Balcony/VIP)', category_name: 'Premium (Balcony/VIP)', price: 295 },
       { categoryId: 2, category_id: 2, categoryName: 'Standard (First Class)', category_name: 'Standard (First Class)', price: 175 }
@@ -182,7 +182,7 @@ const SEED_EVENTS = [
     venue_name: 'Sri Krishna Complex',
     venue_location: 'Kothapet, Guntur',
     total_seats: 30,
-    available_seats: 27,
+    available_seats: 30,
     prices: [
       { categoryId: 1, category_id: 1, categoryName: 'Premium (Balcony/VIP)', category_name: 'Premium (Balcony/VIP)', price: 295 },
       { categoryId: 2, category_id: 2, categoryName: 'Standard (First Class)', category_name: 'Standard (First Class)', price: 175 }
@@ -239,6 +239,7 @@ const generateSeatsForEvent = (eventId) => {
         categoryName: isPrem ? 'Premium (Balcony/VIP)' : 'Standard (First Class)',
         price: isPrem ? 295 : 175,
         status: 'AVAILABLE',
+        hold_user_id: null,
         isMyHold: false,
         holdExpiresAt: null
       });
@@ -250,6 +251,43 @@ const generateSeatsForEvent = (eventId) => {
 class ClientStore {
   constructor() {
     this.init();
+    this.channel = typeof window !== 'undefined' && window.BroadcastChannel ? new BroadcastChannel('ticketease_seats_channel') : null;
+    if (this.channel) {
+      this.channel.onmessage = (msg) => {
+        if (msg.data && msg.data.type === 'SEATS_UPDATED') {
+          this.loadSeats();
+          if (typeof window !== 'undefined') {
+            window.dispatchEvent(new CustomEvent('seatUpdated', { detail: msg.data }));
+          }
+        }
+      };
+    }
+    if (typeof window !== 'undefined') {
+      window.addEventListener('storage', (e) => {
+        if (e.key === 'ticketease_client_seats') {
+          this.loadSeats();
+          window.dispatchEvent(new CustomEvent('seatUpdated', { detail: { refresh: true } }));
+        }
+      });
+    }
+  }
+
+  getCurrentUserId() {
+    try {
+      const u = localStorage.getItem('ticket_app_user');
+      return u ? JSON.parse(u).id : null;
+    } catch {
+      return null;
+    }
+  }
+
+  loadSeats() {
+    try {
+      const saved = localStorage.getItem('ticketease_client_seats');
+      if (saved) {
+        this.eventSeats = JSON.parse(saved);
+      }
+    } catch {}
   }
 
   init() {
@@ -265,9 +303,20 @@ class ClientStore {
     this.events = [...SEED_EVENTS];
     this.venues = [...SEED_VENUES];
     this.categories = [...SEED_CATEGORIES];
-    this.eventSeats = {};
-    for (const e of this.events) {
-      this.eventSeats[e.id] = generateSeatsForEvent(e.id);
+
+    const savedSeats = localStorage.getItem('ticketease_client_seats');
+    if (savedSeats) {
+      try {
+        this.eventSeats = JSON.parse(savedSeats);
+      } catch {
+        this.eventSeats = {};
+      }
+    } else {
+      this.eventSeats = {};
+      for (const e of this.events) {
+        this.eventSeats[e.id] = generateSeatsForEvent(e.id);
+      }
+      this.saveSeats();
     }
   }
 
@@ -275,18 +324,48 @@ class ClientStore {
     localStorage.setItem('ticketease_client_users', JSON.stringify(this.users));
     localStorage.setItem('ticketease_client_bookings', JSON.stringify(this.bookings));
     localStorage.setItem('ticketease_client_waitlists', JSON.stringify(this.waitlists));
+    this.saveSeats();
+  }
+
+  saveSeats() {
+    localStorage.setItem('ticketease_client_seats', JSON.stringify(this.eventSeats));
+    if (this.channel) {
+      this.channel.postMessage({ type: 'SEATS_UPDATED' });
+    }
+  }
+
+  cleanupExpired(eventId) {
+    const seats = this.eventSeats[eventId] || [];
+    const now = new Date();
+    let modified = false;
+    seats.forEach((s) => {
+      if (s.status === 'HELD' && s.holdExpiresAt && new Date(s.holdExpiresAt) < now) {
+        s.status = 'AVAILABLE';
+        s.hold_user_id = null;
+        s.holdExpiresAt = null;
+        s.isMyHold = false;
+        modified = true;
+      }
+    });
+    if (modified) {
+      this.saveSeats();
+    }
   }
 
   login(email, password) {
+    this.init();
     const user = this.users.find((u) => u.email.toLowerCase() === email.toLowerCase() && (u.password === password || password === 'Password@123' || password.startsWith('Admin') || password.startsWith('Customer') || password.startsWith('Organiser')));
     if (!user) {
-      const fallbackUser = { id: 99, name: email.split('@')[0], email, role: 'CUSTOMER' };
-      return { user: fallbackUser, token: 'mock-jwt-token-' + Date.now() };
+      const fallbackUser = { id: this.users.length + 1, name: email.split('@')[0], email, password, role: 'CUSTOMER' };
+      this.users.push(fallbackUser);
+      this.save();
+      return { user: { id: fallbackUser.id, name: fallbackUser.name, email: fallbackUser.email, role: fallbackUser.role }, token: 'mock-jwt-token-' + Date.now() };
     }
     return { user: { id: user.id, name: user.name, email: user.email, role: user.role }, token: 'mock-jwt-token-' + Date.now() };
   }
 
   register(name, email, password, role = 'CUSTOMER') {
+    this.init();
     let existing = this.users.find((u) => u.email.toLowerCase() === email.toLowerCase());
     if (!existing) {
       existing = { id: this.users.length + 1, name, email, password, role };
@@ -297,6 +376,7 @@ class ClientStore {
   }
 
   getEvents(params = {}) {
+    this.init();
     let res = [...this.events];
     if (params.search) {
       const q = params.search.toLowerCase();
@@ -309,6 +389,7 @@ class ClientStore {
   }
 
   getEventById(id) {
+    this.init();
     const evt = this.events.find((e) => e.id === parseInt(id, 10)) || this.events[0];
     const seats = this.getSeats(evt.id);
     const available = seats.filter((s) => s.status === 'AVAILABLE').length;
@@ -330,32 +411,81 @@ class ClientStore {
   }
 
   getSeats(eventId) {
+    this.loadSeats();
     if (!this.eventSeats[eventId]) {
       this.eventSeats[eventId] = generateSeatsForEvent(eventId);
+      this.saveSeats();
     }
-    return this.eventSeats[eventId];
+    this.cleanupExpired(eventId);
+    const userId = this.getCurrentUserId();
+    return this.eventSeats[eventId].map((s) => ({
+      ...s,
+      isMyHold: s.status === 'HELD' && s.hold_user_id === userId
+    }));
   }
 
   holdSeats(eventId, seatIds) {
-    const seats = this.getSeats(eventId);
+    this.loadSeats();
+    this.cleanupExpired(eventId);
+    const seats = this.eventSeats[eventId];
+    const userId = this.getCurrentUserId();
+
+    for (const sId of seatIds) {
+      const s = seats.find((item) => item.id === sId);
+      if (!s) continue;
+      if (s.status === 'BOOKED') {
+        const err = new Error(`Seat ${s.rowLabel}${s.seatNumber} is already booked by another customer.`);
+        err.response = { status: 409, data: { error: { message: err.message } } };
+        throw err;
+      }
+      if (s.status === 'HELD' && s.hold_user_id && s.hold_user_id !== userId) {
+        const err = new Error(`Seat ${s.rowLabel}${s.seatNumber} is currently held by another customer.`);
+        err.response = { status: 409, data: { error: { message: err.message } } };
+        throw err;
+      }
+    }
+
     const expiresAt = new Date(Date.now() + 600 * 1000).toISOString();
     seats.forEach((s) => {
       if (seatIds.includes(s.id)) {
         s.status = 'HELD';
-        s.isMyHold = true;
+        s.hold_user_id = userId;
         s.holdExpiresAt = expiresAt;
+        s.isMyHold = true;
       }
     });
+
+    this.saveSeats();
     return { holdToken: 'hold-token-' + Date.now(), expiresAt, seatIds };
   }
 
   createBooking(eventId, seatIds) {
-    const seats = this.getSeats(eventId);
+    this.loadSeats();
+    this.cleanupExpired(eventId);
+    const seats = this.eventSeats[eventId];
+    const userId = this.getCurrentUserId();
+
+    for (const sId of seatIds) {
+      const s = seats.find((item) => item.id === sId);
+      if (!s) continue;
+      if (s.status === 'BOOKED') {
+        const err = new Error(`Seat ${s.rowLabel}${s.seatNumber} is already booked.`);
+        err.response = { status: 409, data: { error: { message: err.message } } };
+        throw err;
+      }
+      if (s.status === 'HELD' && s.hold_user_id && s.hold_user_id !== userId) {
+        const err = new Error(`Seat ${s.rowLabel}${s.seatNumber} is held by another customer.`);
+        err.response = { status: 409, data: { error: { message: err.message } } };
+        throw err;
+      }
+    }
+
     const bookedSeats = seats.filter((s) => seatIds.includes(s.id));
     bookedSeats.forEach((s) => {
       s.status = 'BOOKED';
-      s.isMyHold = false;
+      s.hold_user_id = null;
       s.holdExpiresAt = null;
+      s.isMyHold = false;
     });
 
     const evt = this.events.find((e) => e.id === parseInt(eventId, 10)) || this.events[0];
@@ -368,6 +498,7 @@ class ClientStore {
 
     const newBooking = {
       id: this.bookings.length + 1,
+      user_id: userId,
       bookingReference,
       booking_reference: bookingReference,
       eventId: evt.id,
@@ -396,24 +527,41 @@ class ClientStore {
   }
 
   getBookings() {
-    return this.bookings;
+    this.init();
+    const userId = this.getCurrentUserId();
+    if (!userId) return this.bookings;
+    return this.bookings.filter((b) => !b.user_id || b.user_id === userId);
   }
 
   cancelBooking(bookingId) {
+    this.init();
     const b = this.bookings.find((item) => item.id === parseInt(bookingId, 10));
     if (b) {
       b.status = 'CANCELLED';
       b.cancelledAt = new Date().toISOString();
+      if (b.seats && b.eventId && this.eventSeats[b.eventId]) {
+        const sIds = b.seats.map((s) => s.id);
+        this.eventSeats[b.eventId].forEach((s) => {
+          if (sIds.includes(s.id)) {
+            s.status = 'AVAILABLE';
+            s.hold_user_id = null;
+            s.holdExpiresAt = null;
+          }
+        });
+      }
       this.save();
     }
     return { success: true, status: 'CANCELLED' };
   }
 
   joinWaitlist(eventId, categoryId, quantity) {
+    this.init();
     const evt = this.events.find((e) => e.id === parseInt(eventId, 10)) || this.events[0];
     const cat = this.categories.find((c) => c.id === parseInt(categoryId, 10)) || this.categories[0];
+    const userId = this.getCurrentUserId();
     const entry = {
       id: this.waitlists.length + 1,
+      user_id: userId,
       event_id: evt.id,
       event_title: evt.title,
       venue_name: evt.venue_name,
@@ -430,10 +578,14 @@ class ClientStore {
   }
 
   getWaitlists() {
-    return this.waitlists;
+    this.init();
+    const userId = this.getCurrentUserId();
+    if (!userId) return this.waitlists;
+    return this.waitlists.filter((w) => !w.user_id || w.user_id === userId);
   }
 
   cancelWaitlist(id) {
+    this.init();
     const idx = this.waitlists.findIndex((w) => w.id === parseInt(id, 10));
     if (idx !== -1) {
       this.waitlists.splice(idx, 1);

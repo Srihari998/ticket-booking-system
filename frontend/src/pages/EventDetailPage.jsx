@@ -2,17 +2,17 @@ import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { fetchEventById, fetchEventSeats, holdSeats } from '../services/eventService';
 import { joinWaitlist } from '../services/waitlistService';
-import { useSocket } from '../context/SocketContext';
 import { useAuth } from '../context/AuthContext';
+import { useSocket } from '../context/SocketContext';
 import { SeatMap } from '../components/SeatMap';
 import { CountdownTimer } from '../components/CountdownTimer';
-import { Calendar, MapPin, Tag, AlertCircle, CheckCircle2, Clock } from 'lucide-react';
+import { Calendar, MapPin, Clock, AlertCircle, CheckCircle2 } from 'lucide-react';
 
 export const EventDetailPage = () => {
   const { id } = useParams();
-  const navigate = useNavigate();
-  const { socket } = useSocket();
   const { user } = useAuth();
+  const { socket } = useSocket();
+  const navigate = useNavigate();
 
   const [eventData, setEventData] = useState(null);
   const [seats, setSeats] = useState([]);
@@ -42,6 +42,9 @@ export const EventDetailPage = () => {
       if (existingMyHolds.length > 0) {
         setMyHeldSeatIds(existingMyHolds.map((s) => s.id));
         setHoldExpiresAt(existingMyHolds[0].holdExpiresAt);
+      } else {
+        setMyHeldSeatIds([]);
+        setHoldExpiresAt(null);
       }
     } catch (err) {
       setError(err.response?.data?.error?.message || 'Failed to load event details');
@@ -52,6 +55,16 @@ export const EventDetailPage = () => {
 
   useEffect(() => {
     loadData();
+  }, [id]);
+
+  useEffect(() => {
+    const handleLocalSeatUpdated = () => {
+      loadData();
+    };
+    window.addEventListener('seatUpdated', handleLocalSeatUpdated);
+    return () => {
+      window.removeEventListener('seatUpdated', handleLocalSeatUpdated);
+    };
   }, [id]);
 
   useEffect(() => {
@@ -128,7 +141,7 @@ export const EventDetailPage = () => {
         }
       });
     } catch (err) {
-      setError(err.response?.data?.error?.message || 'One or more selected seats could not be held.');
+      setError(err.response?.data?.error?.message || err.message || 'One or more selected seats could not be held.');
       await loadData();
     } finally {
       setHolding(false);
@@ -250,7 +263,7 @@ export const EventDetailPage = () => {
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', maxHeight: '180px', overflowY: 'auto' }}>
                   {selectedSeatsList.map((s) => (
                     <div key={s.id} style={{ display: 'flex', justifyContent: 'space-between', fontSize: '13px', background: '#f8fafc', padding: '6px 10px', borderRadius: '4px' }}>
-                      <span>Seat {s.rowLabel}{s.seatNumber} ({s.categoryName})</span>
+                      <span>Seat {s.rowLabel}${s.seatNumber} ({s.categoryName})</span>
                       <span style={{ fontWeight: '700' }}>₹{Number(s.price).toFixed(0)}</span>
                     </div>
                   ))}
