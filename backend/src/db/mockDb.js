@@ -1158,6 +1158,14 @@ class MockDatabase {
           };
         }
 
+        if (norm.includes('from waitlist_offer_seats') && norm.includes('where offer_id = any($1)')) {
+          const ids = Array.isArray(params[0]) ? params[0] : [params[0]];
+          const rows = self.waitlistOfferSeats
+            .filter((w) => ids.includes(w.offer_id))
+            .map((w) => ({ offer_id: w.offer_id, event_seat_id: w.event_seat_id }));
+          return { rows };
+        }
+
         if (norm.includes('from waitlist_offer_seats wos') && norm.includes('for update of es')) {
           const offerId = parseInt(params[0], 10);
           const wosList = self.waitlistOfferSeats.filter((w) => w.offer_id === offerId);

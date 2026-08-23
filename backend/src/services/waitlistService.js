@@ -424,13 +424,10 @@ const cleanupExpiredOffers = async () => {
     await client.query('BEGIN');
 
     const expiredOffersRes = await client.query(
-      `SELECT wo.id, wo.waitlist_entry_id, we.event_id, we.category_id, we.user_id,
-              array_agg(wos.event_seat_id) as seat_ids
+      `SELECT wo.id, wo.waitlist_entry_id, we.event_id, we.category_id, we.user_id
        FROM waitlist_offers wo
        JOIN waitlist_entries we ON wo.waitlist_entry_id = we.id
-       JOIN waitlist_offer_seats wos ON wo.id = wos.offer_id
        WHERE wo.status = 'ACTIVE' AND wo.expires_at < CURRENT_TIMESTAMP
-       GROUP BY wo.id, wo.waitlist_entry_id, we.event_id, we.category_id, we.user_id
        FOR UPDATE OF wo`
     );
 
@@ -441,6 +438,21 @@ const cleanupExpiredOffers = async () => {
 
     const expiredOfferIds = expiredOffersRes.rows.map((o) => o.id);
     const expiredEntryIds = expiredOffersRes.rows.map((o) => o.waitlist_entry_id);
+
+    const seatsMapRes = await client.query(
+      `SELECT offer_id, event_seat_id FROM waitlist_offer_seats WHERE offer_id = ANY($1)`,
+      [expiredOfferIds]
+    );
+
+    const seatMap = new Map();
+    seatsMapRes.rows.forEach((s) => {
+      if (!seatMap.has(s.offer_id)) seatMap.set(s.offer_id, []);
+      seatMap.get(s.offer_id).push(s.event_seat_id);
+    });
+
+    expiredOffersRes.rows.forEach((o) => {
+      o.seat_ids = seatMap.get(o.id) || [];
+    });
 
     await client.query(`UPDATE waitlist_offers SET status = 'EXPIRED' WHERE id = ANY($1)`, [expiredOfferIds]);
     await client.query(`UPDATE waitlist_entries SET status = 'EXPIRED' WHERE id = ANY($1)`, [expiredEntryIds]);
