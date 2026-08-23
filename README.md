@@ -8,9 +8,9 @@ TicketEase is a full-stack ticket booking platform for movies, concerts, and liv
 
 | Resource | URL |
 |---|---|
-| **Deployed Frontend (Vercel)** | `https://ticketease-booking.vercel.app` |
-| **Backend API Gateway (Render)** | `https://ticketease-api.onrender.com/api` |
-| **API Health Endpoint** | `https://ticketease-api.onrender.com/api/health` |
+| **Deployed Frontend (Vercel)** | `https://ticket-booking-system-tawny.vercel.app/` |
+| **Backend API Gateway (Render)** | `https://ticket-booking-system-3el9.onrender.com/api` |
+| **API Health Endpoint** | `https://ticket-booking-system-3el9.onrender.com/api/health` |
 
 > **Note on Demo Credentials**: Production database migrations and seed scripts have been executed. All demo accounts below are pre-seeded and ready to use live immediately:
 > - **Customer**: `customer@example.com` / `Customer@123`
