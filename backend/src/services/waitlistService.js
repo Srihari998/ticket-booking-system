@@ -177,9 +177,9 @@ const processWaitlistQueue = async (eventId, categoryId, externalClient = null) 
         userName: entry.user_name,
         eventTitle: entry.event_title,
         categoryName: entry.category_name,
-        offerToken: token,
+        offerUrl: `${config.clientUrl}/waitlist-offer/${token}`,
         expiresAt: expiresAt.toISOString(),
-        seatsCount: allocatedSeatIds.length
+        quantity: entry.quantity
       }).catch((e) => console.error('Error sending waitlist offer email:', e));
 
       return {
@@ -434,7 +434,7 @@ const cleanupExpiredOffers = async () => {
        FOR UPDATE OF wo`
     );
 
-    if (expiredOffersRes.rows.length === 0) {
+    if (!expiredOffersRes.rows || expiredOffersRes.rows.length === 0) {
       await client.query('COMMIT');
       return [];
     }
@@ -446,7 +446,7 @@ const cleanupExpiredOffers = async () => {
     await client.query(`UPDATE waitlist_entries SET status = 'EXPIRED' WHERE id = ANY($1)`, [expiredEntryIds]);
 
     const allSeatIds = [];
-    expiredOffersRes.forEach((o) => allSeatIds.push(...o.seat_ids));
+    expiredOffersRes.rows.forEach((o) => allSeatIds.push(...o.seat_ids));
 
     if (allSeatIds.length > 0) {
       await client.query(
@@ -459,7 +459,7 @@ const cleanupExpiredOffers = async () => {
 
     await client.query('COMMIT');
 
-    for (const exp of expiredOffersRes) {
+    for (const exp of expiredOffersRes.rows) {
       const seatsData = await query(
         `SELECT es.id, vs.row_label, vs.seat_number, vs.category_id, sc.name as category_name
          FROM event_seats es
@@ -486,7 +486,7 @@ const cleanupExpiredOffers = async () => {
       );
     }
 
-    return expiredOffersRes;
+    return expiredOffersRes.rows;
   } catch (error) {
     await client.query('ROLLBACK');
     console.error('Error during cleanupExpiredOffers:', error);

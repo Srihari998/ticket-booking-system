@@ -6,11 +6,11 @@ This document details the engineering decisions behind the Ticket Booking System
 
 ---
 
-## 2. PostgreSQL as the Authoritative Source of Truth
+## 2. PostgreSQL as the Authoritative Source of Truth & Primary Lock
 
 In high-concurrency reservation platforms, relying on distributed in-memory caches as the primary transactional authority leads to state drift, race conditions during failover, and phantom bookings.
 
-PostgreSQL acts as the single authoritative source of truth. Seat state transitions (`AVAILABLE` -> `HELD` -> `BOOKED`) are strictly enforced via relational constraints, unique indexes, and ACID transactions. Every state change is validated directly in the database before returning success to the client.
+PostgreSQL row-level locking (`SELECT ... FOR UPDATE`) serves as the true source of truth for seat-hold conflicts, while Redis functions as a high-speed secondary TTL cache rather than the primary distributed lock. This intentional design prevents split-brain anomalies and state desynchronization between Redis and Postgres, which frequently occur during cache evictions, node restarts, or network partitions. Because PostgreSQL is already the durable, ACID-compliant system of record, evaluating locks directly on database rows guarantees that no transaction can commit a phantom hold or double-booking regardless of cache health.
 
 ---
 
@@ -66,7 +66,7 @@ When an event category is sold out, customers can join a strict First-In-First-O
 5. A record in `waitlist_offers` is created with an active window (`WAITLIST_OFFER_TTL_SECONDS`, default 10 minutes).
 6. The customer receives a notification email with a direct claim link `/waitlist-offer/{token}`.
 7. If the customer accepts before expiry, seats transition to `BOOKED` within a single transaction.
-8. If the offer timer expires, the background worker marks the offer `EXPIRED` and automatically promotes the next eligible FIFO customer in line.
+8. If the offer timer expires, the background worker marks the offer `EXPIRED` and automatically promotes the next eligible FIFO customer in line via `cleanupExpiredOffers`.
 
 ---
 

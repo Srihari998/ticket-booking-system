@@ -4,6 +4,21 @@ TicketEase is a full-stack ticket booking platform for movies, concerts, and liv
 
 ---
 
+## 🌐 Live Demo & Deployment
+
+| Resource | URL |
+|---|---|
+| **Deployed Frontend (Vercel)** | `https://ticketease-booking.vercel.app` |
+| **Backend API Gateway (Render)** | `https://ticketease-api.onrender.com/api` |
+| **API Health Endpoint** | `https://ticketease-api.onrender.com/api/health` |
+
+> **Note on Demo Credentials**: Production database migrations and seed scripts have been executed. All demo accounts below are pre-seeded and ready to use live immediately:
+> - **Customer**: `customer@example.com` / `Customer@123`
+> - **Organiser**: `organiser@example.com` / `Organiser@123`
+> - **Admin**: `admin@example.com` / `Admin@123`
+
+---
+
 ## 1. Features
 
 ### Customer Experience
@@ -125,7 +140,7 @@ sequenceDiagram
 1. **FIFO Waitlist Registration**: When an event category is sold out, users register in `waitlist_entries` (FIFO by `created_at ASC`).
 2. **Auto-Assignment on Cancellation**: When a customer cancels a booking, released seats trigger `processWaitlistQueue(eventId, categoryId)`.
 3. **Time-Limited Cryptographic Offer**: The first eligible waiting customer is assigned the seat with an unguessable 256-bit token (`crypto.randomBytes(32)`), an offer record with a 10-minute TTL, and an email notification with link `/waitlist-offer/{token}`.
-4. **Offer Expiration**: If the customer fails to claim within 10 minutes, the offer expires and the seat is automatically offered to the next FIFO customer.
+4. **Offer Expiration & Re-Offer Chain**: If the customer fails to claim within 10 minutes, `cleanupExpiredOffers` expires the offer and immediately re-offers the seat to the next waiting FIFO customer.
 
 ---
 
@@ -199,7 +214,7 @@ Frontend will start on `http://localhost:5173`.
 
 ## 9. Running Automated Tests
 
-Run the complete integration and concurrency test suite covering all 14 mandatory test cases:
+Run the complete integration and concurrency test suite covering all 15 test cases:
 
 ```bash
 cd ticket-booking-system/backend
@@ -220,7 +235,8 @@ npm test
 11. Waitlist registration for sold-out category
 12. Automatic waitlist offer creation on booking cancellation
 13. Waitlist offer acceptance & ticket generation
-14. Waitlist offer expiration and queue progression
+14. Waitlist offer expiration
+15. **Waitlist Re-Offer Chain** (Expired offer automatically re-assigns the seat to the next eligible customer in the FIFO queue)
 
 ---
 

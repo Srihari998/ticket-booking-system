@@ -5,8 +5,11 @@ let ioInstance = null;
 const initSocketServer = (httpServer, clientUrl) => {
   ioInstance = new Server(httpServer, {
     cors: {
-      origin: clientUrl || '*',
-      methods: ['GET', 'POST']
+      origin: (origin, callback) => {
+        callback(null, true);
+      },
+      methods: ['GET', 'POST'],
+      credentials: true
     }
   });
 

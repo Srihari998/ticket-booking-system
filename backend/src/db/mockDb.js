@@ -1127,7 +1127,7 @@ class MockDatabase {
           return { rows: [] };
         }
 
-        if (norm.includes('from waitlist_offers wo') && norm.includes('for update of wo')) {
+        if (norm.includes('from waitlist_offers wo') && norm.includes('where wo.token = $1') && norm.includes('for update of wo')) {
           const offer = self.waitlistOffers.find((o) => o.token === params[0]);
           if (!offer) return { rows: [] };
           const entry = self.waitlistEntries.find((e) => e.id === offer.waitlist_entry_id) || {};

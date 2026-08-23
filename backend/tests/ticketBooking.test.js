@@ -2,7 +2,7 @@ const request = require('supertest');
 const app = require('../src/app');
 const { mockDb } = require('../src/db');
 const { cleanupExpiredHolds } = require('../src/services/seatHoldService');
-const { cleanupExpiredOffers } = require('../src/services/waitlistService');
+const { cleanupExpiredOffers, processWaitlistQueue } = require('../src/services/waitlistService');
 
 describe('Ticket Booking System - Comprehensive Integration & Concurrency Test Suite', () => {
   let customerToken = '';
@@ -282,7 +282,6 @@ describe('Ticket Booking System - Comprehensive Integration & Concurrency Test S
       .send({ categoryId: 1, quantity: 1 });
 
     premiumSeats[0].status = 'AVAILABLE';
-    const { processWaitlistQueue } = require('../src/services/waitlistService');
     const offerResult = await processWaitlistQueue(1, 1);
     expect(offerResult).toBeDefined();
 
@@ -312,7 +311,6 @@ describe('Ticket Booking System - Comprehensive Integration & Concurrency Test S
       .send({ categoryId: 1, quantity: 1 });
 
     premiumSeats[0].status = 'AVAILABLE';
-    const { processWaitlistQueue } = require('../src/services/waitlistService');
     const offerResult = await processWaitlistQueue(1, 1);
 
     const targetOffer = mockDb.waitlistOffers.find(o => o.token === offerResult.token);
@@ -325,5 +323,64 @@ describe('Ticket Booking System - Comprehensive Integration & Concurrency Test S
       .set('Authorization', `Bearer ${customer2Token}`);
     expect(acceptExpired.status).toBe(409);
     expect(acceptExpired.body.error.message).toContain('expired');
+  });
+
+  test('15. Waitlist Re-Offer Chain: Expired Offer Re-Assigns Seat to Next In Queue', async () => {
+    const premiumSeats = mockDb.eventSeats.filter(es => {
+      const vs = mockDb.venueSeats.find(v => v.id === es.venue_seat_id);
+      return es.event_id === 1 && vs && vs.category_id === 1;
+    });
+    premiumSeats.forEach(s => { s.status = 'BOOKED'; });
+
+    await request(app)
+      .post('/api/events/1/waitlist')
+      .set('Authorization', `Bearer ${customerToken}`)
+      .send({ categoryId: 1, quantity: 1 });
+
+    await request(app)
+      .post('/api/events/1/waitlist')
+      .set('Authorization', `Bearer ${customer2Token}`)
+      .send({ categoryId: 1, quantity: 1 });
+
+    premiumSeats[0].status = 'AVAILABLE';
+
+    const offerResult1 = await processWaitlistQueue(1, 1);
+    expect(offerResult1).toBeDefined();
+    expect(offerResult1.userId).toBe(3);
+
+    const user1Waitlists = await request(app)
+      .get('/api/waitlist')
+      .set('Authorization', `Bearer ${customerToken}`);
+    expect(user1Waitlists.body.data.waitlists[0].status).toBe('OFFERED');
+
+    const user2WaitlistsBefore = await request(app)
+      .get('/api/waitlist')
+      .set('Authorization', `Bearer ${customer2Token}`);
+    expect(user2WaitlistsBefore.body.data.waitlists[0].status).toBe('WAITING');
+
+    const targetOffer = mockDb.waitlistOffers.find(o => o.token === offerResult1.token);
+    targetOffer.expires_at = new Date(Date.now() - 5000);
+
+    const cleanupRes = await cleanupExpiredOffers();
+    expect(cleanupRes.length).toBeGreaterThan(0);
+
+    const user1WaitlistsAfter = await request(app)
+      .get('/api/waitlist')
+      .set('Authorization', `Bearer ${customerToken}`);
+    expect(user1WaitlistsAfter.body.data.waitlists[0].status).toBe('EXPIRED');
+
+    const user2WaitlistsAfter = await request(app)
+      .get('/api/waitlist')
+      .set('Authorization', `Bearer ${customer2Token}`);
+    expect(user2WaitlistsAfter.body.data.waitlists[0].status).toBe('OFFERED');
+    const newOfferToken = user2WaitlistsAfter.body.data.waitlists[0].active_offer_token;
+    expect(newOfferToken).toBeDefined();
+    expect(newOfferToken).not.toBe(offerResult1.token);
+
+    const acceptRes2 = await request(app)
+      .post(`/api/waitlist-offers/${newOfferToken}/accept`)
+      .set('Authorization', `Bearer ${customer2Token}`);
+    expect(acceptRes2.status).toBe(200);
+    expect(acceptRes2.body.data.bookingReference).toBeDefined();
   });
 });
