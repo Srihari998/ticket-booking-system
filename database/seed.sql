@@ -1,8 +1,8 @@
 INSERT INTO users (id, name, email, password_hash, role) VALUES
-(1, 'System Administrator', 'admin@example.com', '$2a$10$EixZaYVK1fsbw1ZfbX3OXePaWxn96p36WQoeG6Lruj3vjPGga31lW', 'ADMIN'),
-(2, 'Master Organiser', 'organiser@example.com', '$2a$10$EixZaYVK1fsbw1ZfbX3OXePaWxn96p36WQoeG6Lruj3vjPGga31lW', 'ORGANISER'),
-(3, 'Jane Customer', 'customer@example.com', '$2a$10$EixZaYVK1fsbw1ZfbX3OXePaWxn96p36WQoeG6Lruj3vjPGga31lW', 'CUSTOMER')
-ON CONFLICT (id) DO NOTHING;
+(1, 'System Administrator', 'admin@example.com', '$2b$10$F7.t3UeD0BdNjLx.Gj9Vq.A/dx5d9pFeOuMrHDX5/Pzd8aXNfCGYC', 'ADMIN'),
+(2, 'Master Organiser', 'organiser@example.com', '$2b$10$HP0rVh6x26Re9CjFr2KVouBzbPYdZtKhBZwc/ZJXZ4bBscjLmrOz2', 'ORGANISER'),
+(3, 'Jane Customer', 'customer@example.com', '$2b$10$VxzRMHZXMQJBN9c3OxYqiehxI4bp5FhaBzNoWPiLNBsFSa55tnQdy', 'CUSTOMER')
+ON CONFLICT (id) DO UPDATE SET password_hash = EXCLUDED.password_hash;
 
 INSERT INTO seat_categories (id, name, description) VALUES
 (1, 'Premium (Balcony/VIP)', 'Prime center viewing with plush push-back seats and extra legroom'),
