@@ -8,7 +8,8 @@ export const loginUser = async (email, password) => {
       return response.data.data;
     }
     return clientStore.login(email, password);
-  } catch {
+  } catch (error) {
+    if (error.response) throw error;
     return clientStore.login(email, password);
   }
 };
@@ -20,7 +21,8 @@ export const registerUser = async (name, email, password, role = 'CUSTOMER') => 
       return response.data.data;
     }
     return clientStore.register(name, email, password, role);
-  } catch {
+  } catch (error) {
+    if (error.response) throw error;
     return clientStore.register(name, email, password, role);
   }
 };

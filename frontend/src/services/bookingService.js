@@ -8,7 +8,8 @@ export const createBooking = async (eventId, seatIds) => {
       return response.data.data;
     }
     return clientStore.createBooking(eventId, seatIds);
-  } catch {
+  } catch (error) {
+    if (error.response) throw error;
     return clientStore.createBooking(eventId, seatIds);
   }
 };
@@ -20,7 +21,8 @@ export const fetchUserBookings = async () => {
       return response.data.data.bookings;
     }
     return clientStore.getBookings();
-  } catch {
+  } catch (error) {
+    if (error.response) throw error;
     return clientStore.getBookings();
   }
 };
@@ -33,7 +35,8 @@ export const fetchBookingById = async (id) => {
     }
     const all = clientStore.getBookings();
     return all.find((b) => b.id === parseInt(id, 10)) || all[0];
-  } catch {
+  } catch (error) {
+    if (error.response) throw error;
     const all = clientStore.getBookings();
     return all.find((b) => b.id === parseInt(id, 10)) || all[0];
   }
@@ -46,7 +49,8 @@ export const cancelBooking = async (id) => {
       return response.data.data;
     }
     return clientStore.cancelBooking(id);
-  } catch {
+  } catch (error) {
+    if (error.response) throw error;
     return clientStore.cancelBooking(id);
   }
 };
