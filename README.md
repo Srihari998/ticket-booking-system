@@ -12,10 +12,14 @@ TicketEase is a full-stack ticket booking platform for movies, concerts, and liv
 | **Backend API Gateway (Render)** | `https://ticket-booking-system-3el9.onrender.com/api` |
 | **API Health Endpoint** | `https://ticket-booking-system-3el9.onrender.com/api/health` |
 
+> [!IMPORTANT]
+> ### ⏳ **IMPORTANT: Note on First Load (Render Free-Tier Cold Start)**
+> **The backend API is hosted on Render's free tier. If the service has been idle, please allow ~30–45 seconds on the very first page load or login for the server and database to spin up.** Once awake, all browsing, seat holds, and real-time concurrency locking operate at full speed!
+
 > **Note on Demo Credentials**: Production database migrations and seed scripts have been executed. All demo accounts below are pre-seeded and ready to use live immediately:
 > - **Customer**: `customer@example.com` / `Customer@123`
 > - **Organiser**: `organiser@example.com` / `Organiser@123`
-> - **Admin**: `admin@example.com` / `Admin@123`
+> - **Admin**: `admin@example.com` / `Admin@123` *(Direct access to Admin Console for managing movies, theaters, and seat layouts)*
 
 ---
 
